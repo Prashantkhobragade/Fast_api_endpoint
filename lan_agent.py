@@ -1,6 +1,6 @@
 import requests
-from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent
-from langchain.prompts import StringPromptTemplate
+from langchain.agents import Tool, AgentExecutor, create_structured_chat_agent
+from langchain.prompts import StringPromptTemplate, PromptTemplate
 from langchain.chains import LLMChain
 from langchain.schema import AgentAction, AgentFinish
 from typing import List, Union, Dict
@@ -50,7 +50,11 @@ tools = [
 template = """You are an AI assistant that helps with managing inventory items.
 You have access to the following tools:
 
-{tools}
+Tools: {tools}
+
+Tool names: {tool_names}
+
+Please keep track of your thoughts and action here: {agent_scratchpad}
 
 Use the following format:
 
@@ -64,16 +68,53 @@ If the command is not recognized, response with "Unknown Command."
 
 """
 
+
 class PromptTemplate(StringPromptTemplate):
     def format(self, **kwarg)->str:
         tools_info = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
-        return template.format(tools=tools_info)
-    
+        tool_names = ", ".join([tool.name for tool in tools])
+        return template.format(tools=tools_info, tool_names=tool_names)
+
 
 #Definr the prompt template
-prompt = PromptTemplate(input_variables=["input_text"])
+prompt = PromptTemplate(input_variables=["input_text"], template=template)
 
 
 llm = ChatGroq(
     model="llama-3.1-8b-instant",
 )
+
+#runnable_sequence = prompt | llm
+
+"""
+#output parser
+def parse_output(output: str) -> Union[AgentAction, AgentFinish]:
+    command_match = re.search(r"Command:\s*(\w+)", output)
+    item_number_match = re.search(r"Item Number:\s*(\d+)", output)
+    
+    if not command_match or not item_number_match:
+        return AgentFinish(message="Unknown command", log=output)
+
+    command = command_match.group(1)
+    item_number = int(item_number_match.group(1))
+    
+    for tool in tools:
+        if tool.name == command:
+            return AgentAction(tool=tool, inputs={"item_number": item_number})
+    
+    return AgentFinish(message="Unknown command", log=output)
+
+"""
+#Agent executor
+agent = create_structured_chat_agent(
+    prompt=prompt,
+    llm = llm,
+    tools=tools,
+    #parse_output=parse_output
+)
+executor = AgentExecutor(agent=agent, tools = tools)
+
+#executor 
+input_text = "get details of itrm number 110."
+response = executor.run(input_text)
+print(response)
