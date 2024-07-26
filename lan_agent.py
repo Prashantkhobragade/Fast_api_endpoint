@@ -1,10 +1,12 @@
 import requests
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent
 from langchain.prompts import StringPromptTemplate
-from langchain import OpenAI, LLMChain
+from langchain.chains import LLMChain
 from langchain.schema import AgentAction, AgentFinish
 from typing import List, Union, Dict
 import re
+from langchain_groq import ChatGroq
+from groq import Groq
 
 # Define the base URL for your FastAPI application
 BASE_URL = "http://localhost:8000"
@@ -55,3 +57,15 @@ Response:
 If the command is not recognized, response with "Unknown Command."
 
 """
+
+class PromptTemplate(StringPromptTemplate):
+    def format(self, **kwarg)->str:
+        tools_info = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
+        return template.format(tools=tools_info)
+    
+
+#Definr the prompt template
+prompt = PromptTemplate(input_variables=["input_text"])
+
+llm = Groq()
+print(llm)
