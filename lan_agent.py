@@ -7,6 +7,12 @@ from typing import List, Union, Dict
 import re
 from langchain_groq import ChatGroq
 from groq import Groq
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
+
+groq_api_key = os.environ["GROQ_API_KEY"]
 
 # Define the base URL for your FastAPI application
 BASE_URL = "http://localhost:8000"
@@ -67,5 +73,7 @@ class PromptTemplate(StringPromptTemplate):
 #Definr the prompt template
 prompt = PromptTemplate(input_variables=["input_text"])
 
-llm = Groq()
-print(llm)
+
+llm = ChatGroq(
+    model="llama-3.1-8b-instant",
+)
